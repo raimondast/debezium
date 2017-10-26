@@ -475,11 +475,15 @@ public class Replicator {
                                     .getCollection(collectionName)
                                     .find(query).first();
 
-                            if (current != null) {
-                                Document set = event.get("o", Document.class);
-                                current.append("_set", set.get("$set", Document.class).toJson());
-                                event.put("o", current);
+                            // in case document is no longer available, create stub for it not to loose transaction
+                            if (current == null) {
+                                current = new Document();
+                                current.append("_id", id);
                             }
+
+                            Document set = event.get("o", Document.class);
+                            current.append("_set", set.get("$set", Document.class).toJson());
+                            event.put("o", current);
                         });
                     }
                     factory.recordEvent(event, clock.currentTimeInMillis());
